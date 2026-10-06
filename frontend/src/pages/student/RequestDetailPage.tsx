@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SlaGaugeCircle } from '../../components/common/SlaGaugeCircle';
+import { getRequest, getRequestTimeline } from '../../api/requests';
+import { RequestDetail, RequestTimelineItem } from '../../types';
 
 export const RequestDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [newNote, setNewNote] = useState('');
+  const [request, setRequest] = useState<RequestDetail | null>(null);
+  const [timeline, setTimeline] = useState<RequestTimelineItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [notes, setNotes] = useState([
     {
       author: 'Vikram Das',
@@ -22,10 +28,44 @@ export const RequestDetailPage: React.FC = () => {
     },
   ]);
 
-  const ticketId = id || 'CP-2024-8841';
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [req, time] = await Promise.all([
+          getRequest(id),
+          getRequestTimeline(id).catch(() => []),
+        ]);
+        setRequest(req);
+        setTimeline(time);
+      } catch (e) {
+        console.error('Failed to load request detail:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [id]);
+
+  const ticketNumber = request?.ticket_number || id || 'CP-2024-8841';
+  const displayTitle = request?.title || 'Ceiling Projector HDMI Port Failure';
+  const displayDescription =
+    request?.description ||
+    'The ceiling projector in CSE Lab 2 suddenly turned off during lecture. When trying to reconnect the HDMI cable, a small spark was noticed near the port. There is no video output now.';
+  const displayLocation = request?.location
+    ? `${request.location.building}${request.location.room ? ` — ${request.location.room}` : ''}${
+        request.location.floor !== undefined && request.location.floor !== null ? ` (Floor ${request.location.floor})` : ''
+      }`
+    : 'Block A (Engineering) — CSE Lab 2, 2nd Floor';
+  const displayPriority = (request?.priority || 'high').toUpperCase();
+  const displayStatus = (request?.status || 'dispatched').toUpperCase().replace('_', ' ');
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(ticketId);
+    navigator.clipboard.writeText(ticketNumber);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -36,8 +76,8 @@ export const RequestDetailPage: React.FC = () => {
     setNotes([
       ...notes,
       {
-        author: 'Rahul Sharma',
-        role: 'Student Requester',
+        author: 'Student Requester',
+        role: 'Requester',
         time: 'Just now',
         text: newNote,
       },
@@ -57,17 +97,17 @@ export const RequestDetailPage: React.FC = () => {
             <div className="space-y-space-2xs">
               <div className="flex items-center gap-space-xs flex-wrap">
                 <span className="font-headline-lg text-headline-lg font-bold text-on-surface">
-                  Ceiling Projector HDMI Port Failure
+                  {displayTitle}
                 </span>
                 <span className="font-mono-data-sm text-mono-data-sm bg-error-container text-on-error-container px-space-xs py-space-2xs rounded font-bold">
-                  HIGH PRIORITY
+                  {displayPriority} PRIORITY
                 </span>
                 <span className="font-mono-data-sm text-mono-data-sm bg-secondary text-white px-space-xs py-space-2xs rounded font-semibold">
-                  DISPATCHED
+                  {displayStatus}
                 </span>
               </div>
               <p className="font-body-md text-body-md text-on-surface-variant">
-                Located at: <strong className="text-on-surface">Block A (Engineering) — CSE Lab 2, 2nd Floor</strong>
+                Located at: <strong className="text-on-surface">{displayLocation}</strong>
               </p>
             </div>
           </div>
@@ -78,7 +118,7 @@ export const RequestDetailPage: React.FC = () => {
               className="flex items-center gap-space-2xs bg-surface-container-low text-on-surface px-space-md py-space-xs rounded-lg hover:bg-surface-container transition-colors font-mono-data-sm text-mono-data-sm border border-surface-container-high cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">{copied ? 'done' : 'content_copy'}</span>
-              <span>{copied ? 'Copied!' : ticketId}</span>
+              <span>{copied ? 'Copied!' : ticketNumber}</span>
             </button>
             <button
               onClick={() => navigate('/student/dashboard')}
@@ -101,8 +141,10 @@ export const RequestDetailPage: React.FC = () => {
                 <span className="font-label-sm text-[10px] uppercase text-secondary font-bold">1. Logged</span>
                 <span className="material-symbols-outlined text-sm text-secondary">check</span>
               </div>
-              <p className="font-mono-data-sm text-[11px] text-on-surface">10:14 AM</p>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">Submitted via Mobile</p>
+              <p className="font-mono-data-sm text-[11px] text-on-surface">
+                {request?.created_at ? new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '10:14 AM'}
+              </p>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">Submitted via Portal</p>
             </div>
 
             {/* Node 2 */}
@@ -111,7 +153,7 @@ export const RequestDetailPage: React.FC = () => {
                 <span className="font-label-sm text-[10px] uppercase text-secondary font-bold">2. AI Triage</span>
                 <span className="material-symbols-outlined text-sm text-secondary">auto_awesome</span>
               </div>
-              <p className="font-mono-data-sm text-[11px] text-on-surface">10:15 AM</p>
+              <p className="font-mono-data-sm text-[11px] text-on-surface">Auto-Triaged</p>
               <p className="font-body-sm text-[11px] text-on-surface-variant">94% Confidence</p>
             </div>
 
@@ -121,8 +163,10 @@ export const RequestDetailPage: React.FC = () => {
                 <span className="font-label-sm text-[10px] uppercase text-secondary font-bold">3. Assigned</span>
                 <span className="material-symbols-outlined text-sm text-secondary">person</span>
               </div>
-              <p className="font-mono-data-sm text-[11px] text-on-surface">10:18 AM</p>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">Vikram Das (AV Lead)</p>
+              <p className="font-mono-data-sm text-[11px] text-on-surface">
+                {request?.assigned_to?.name || 'Department Queue'}
+              </p>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">{request?.department || 'Field Support'}</p>
             </div>
 
             {/* Node 4 (Active) */}
@@ -131,8 +175,8 @@ export const RequestDetailPage: React.FC = () => {
                 <span className="font-label-sm text-[10px] uppercase text-secondary font-bold">4. In Progress</span>
                 <span className="material-symbols-outlined text-sm text-secondary animate-spin">refresh</span>
               </div>
-              <p className="font-mono-data-sm text-[11px] font-bold text-secondary">10:35 AM (Live)</p>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">Part in transit</p>
+              <p className="font-mono-data-sm text-[11px] font-bold text-secondary">Live Update</p>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">Active ticket</p>
             </div>
 
             {/* Node 5 (Target) */}
@@ -141,8 +185,10 @@ export const RequestDetailPage: React.FC = () => {
                 <span className="font-label-sm text-[10px] uppercase text-on-surface-variant font-bold">5. Resolution</span>
                 <span className="material-symbols-outlined text-sm text-on-surface-variant">schedule</span>
               </div>
-              <p className="font-mono-data-sm text-[11px] text-on-surface">Est. 12:15 PM</p>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">Target SLA 2.0h</p>
+              <p className="font-mono-data-sm text-[11px] text-on-surface">
+                {request?.sla_deadline ? new Date(request.sla_deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Est. Today'}
+              </p>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">Target SLA Window</p>
             </div>
           </div>
         </div>
@@ -156,21 +202,81 @@ export const RequestDetailPage: React.FC = () => {
           <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container-high/40 space-y-space-md">
             <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">Original Incident Report</h3>
             <p className="font-body-md text-body-md text-on-surface leading-relaxed">
-              The ceiling projector in CSE Lab 2 suddenly turned off during the 10:00 AM lecture. When trying to reconnect the HDMI cable, a small spark was noticed near the port. There is no video output now.
+              {displayDescription}
             </p>
 
             <div className="flex flex-wrap gap-space-xs pt-space-xs">
               <span className="font-mono-data-sm text-[11px] bg-surface-container text-on-surface px-space-xs py-space-2xs rounded">
-                #Projector
+                #{request?.category || 'lab_equipment'}
               </span>
               <span className="font-mono-data-sm text-[11px] bg-surface-container text-on-surface px-space-xs py-space-2xs rounded">
-                #HDMISpark
-              </span>
-              <span className="font-mono-data-sm text-[11px] bg-surface-container text-on-surface px-space-xs py-space-2xs rounded">
-                #CSELab2
+                #{request?.location?.building?.split(' ')[0] || 'Campus'}
               </span>
             </div>
           </div>
+
+          {/* Photo / Evidence Attachment Card (if present) */}
+          {request?.attachments && request.attachments.length > 0 && (
+            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container-high/40 space-y-space-md">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-xl">photo_library</span>
+                <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">
+                  Photo / Evidence Attachment
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                {request.attachments.map((att) => {
+                  const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace('/api/v1', '');
+                  const fullUrl = att.url.startsWith('http')
+                    ? att.url
+                    : `${apiBase}${att.url.startsWith('/') ? '' : '/'}${att.url}`;
+                  return (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-space-md p-space-md bg-surface-container-low rounded-xl border border-surface-container-high/60 hover:border-secondary/40 transition-colors"
+                    >
+                      <div className="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center overflow-hidden shrink-0 border border-surface-container-high">
+                        {att.type === 'image' ? (
+                          <img
+                            src={fullUrl}
+                            alt={att.filename}
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(fullUrl, '_blank')}
+                          />
+                        ) : (
+                          <span className="material-symbols-outlined text-2xl text-on-surface-variant">description</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <a
+                          href={fullUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-body-sm text-body-sm font-semibold text-on-surface hover:text-secondary truncate block"
+                          title={att.filename}
+                        >
+                          {att.filename}
+                        </a>
+                        <p className="font-mono-data-sm text-[11px] text-on-surface-variant">
+                          {att.size_bytes ? `${(att.size_bytes / (1024 * 1024)).toFixed(1)} MB • ` : ''}
+                          {att.type === 'image' ? '📷 Evidence Photo' : att.type}
+                        </p>
+                      </div>
+                      <a
+                        href={fullUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-space-xs text-secondary hover:bg-secondary/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title="Open image in new tab"
+                      >
+                        <span className="material-symbols-outlined text-lg">open_in_new</span>
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Activity & Updates Feed */}
           <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container-high/40 space-y-space-md">

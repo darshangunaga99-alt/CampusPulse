@@ -43,9 +43,33 @@ export interface Location {
 export interface User {
   id: string;
   name: string;
+  first_name?: string | null;
+  middle_name?: string | null;
+  last_name?: string | null;
+  usn?: string | null;
+  course?: string | null;
+  phone_number?: string | null;
   email: string;
   role: Role;
+  department?: string | null;
+  skills?: string[];
+  is_available?: boolean;
+  home_building?: string | null;
+}
+
+export interface UpdateProfilePayload {
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  name?: string;
+  usn?: string;
+  course?: string;
   department?: string;
+  email?: string;
+  phone_number?: string;
+  skills?: string[];
+  is_available?: boolean;
+  home_building?: string;
 }
 
 export interface ServiceItem {
@@ -124,14 +148,35 @@ export interface DuplicateCheckResult {
   incident: DuplicateIncident | null;
 }
 
+// Attachments
+export interface AttachmentItem {
+  id: string;
+  request_id: string;
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'document';
+  filename: string;
+  content_type?: string | null;
+  size_bytes?: number | null;
+  created_at: string;
+}
+
+export interface AttachmentInPayload {
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'document';
+  filename: string;
+  content_type?: string | null;
+  size_bytes: number;
+}
+
 // Request Creation & Details
 export interface CreateRequestPayload {
   title: string;
   description: string;
   category: Category;
-  priority: Priority;
+  priority?: Priority;
   location: Location;
   service_id?: string;
+  attachments?: AttachmentInPayload[];
 }
 
 export interface CreateRequestResponse {
@@ -174,6 +219,7 @@ export interface RequestDetail {
   sla_deadline?: string | null;
   created_at: string;
   updated_at: string;
+  attachments?: AttachmentItem[];
 }
 
 export interface RequestTimelineItem {

@@ -8,6 +8,12 @@ class UserOut(BaseModel):
 
     id: str = Field(examples=["usr_123"])
     name: str = Field(examples=["Rahul Kumar"])
+    first_name: str | None = Field(default=None, examples=["Rahul"])
+    middle_name: str | None = Field(default=None, examples=[""])
+    last_name: str | None = Field(default=None, examples=["Kumar"])
+    usn: str | None = Field(default=None, examples=["4XX22CS001"])
+    course: str | None = Field(default=None, examples=["B.E."])
+    phone_number: str | None = Field(default=None, examples=["+91 98765 43210"])
     email: str = Field(examples=["rahul@example.com"])
     role: UserRole
     department: str | None = Field(default=None, description="Department name (additive field, v1.1)")
@@ -17,9 +23,29 @@ class UserOut(BaseModel):
 
 
 def user_out(user) -> UserOut:
+    first_name = getattr(user, "first_name", None)
+    middle_name = getattr(user, "middle_name", None)
+    last_name = getattr(user, "last_name", None)
+
+    # Only derive fallback if first_name, middle_name, and last_name are ALL None
+    if first_name is None and middle_name is None and last_name is None and getattr(user, "name", None):
+        parts = user.name.strip().split()
+        if len(parts) == 1:
+            first_name = parts[0]
+        elif len(parts) == 2:
+            first_name, last_name = parts[0], parts[1]
+        elif len(parts) >= 3:
+            first_name, middle_name, last_name = parts[0], " ".join(parts[1:-1]), parts[-1]
+
     return UserOut(
         id=user.id,
         name=user.name,
+        first_name=first_name,
+        middle_name=middle_name,
+        last_name=last_name,
+        usn=getattr(user, "usn", None),
+        course=getattr(user, "course", None),
+        phone_number=getattr(user, "phone_number", None),
         email=user.email,
         role=user.role,
         department=user.department.name if getattr(user, "department", None) else None,
@@ -30,7 +56,15 @@ def user_out(user) -> UserOut:
 
 
 class UpdateProfileRequest(BaseModel):
-    name: str | None = Field(default=None, min_length=2, max_length=120)
+    first_name: str | None = Field(default=None, max_length=60)
+    middle_name: str | None = Field(default=None, max_length=60)
+    last_name: str | None = Field(default=None, max_length=60)
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    usn: str | None = Field(default=None, max_length=30)
+    course: str | None = Field(default=None, max_length=100)
+    department: str | None = Field(default=None, max_length=100)
+    email: EmailStr | None = None
+    phone_number: str | None = Field(default=None, max_length=30)
     skills: list[str] | None = None
     is_available: bool | None = None
     home_building: str | None = None

@@ -6,12 +6,14 @@ OpenAPI:   /openapi.json
 """
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request as HttpRequest, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
@@ -56,6 +58,25 @@ async def lifespan(app: FastAPI):
     if settings.AUTO_CREATE_TABLES or settings.is_sqlite:
         log.info("Initializing database tables...")
         Base.metadata.create_all(bind=engine)
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                for col_name, col_type in [
+                    ("first_name", "VARCHAR(60)"),
+                    ("middle_name", "VARCHAR(60)"),
+                    ("last_name", "VARCHAR(60)"),
+                    ("usn", "VARCHAR(30)"),
+                    ("course", "VARCHAR(100)"),
+                    ("phone_number", "VARCHAR(30)"),
+                ]:
+                    try:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
+        except Exception as e:
+            log.warning("Column migration notice: %s", e)
+
         try:
             from app.seed import seed
             seed()
@@ -178,6 +199,10 @@ app.include_router(incidents_router, prefix=settings.API_PREFIX)
 app.include_router(analytics_router, prefix=settings.API_PREFIX)
 app.include_router(notifications_router, prefix=settings.API_PREFIX)
 app.include_router(locations_router, prefix=settings.API_PREFIX)
+
+# Static files for attachments / uploads
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
 @app.get("/health", tags=["Health"])

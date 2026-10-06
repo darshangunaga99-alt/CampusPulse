@@ -5,6 +5,7 @@ import {
   AIAnalysisResult,
   DuplicateCheckRequest,
   DuplicateCheckResult,
+  AttachmentInPayload,
   CreateRequestPayload,
   CreateRequestResponse,
   RequestDetail,
@@ -42,6 +43,31 @@ export const checkDuplicates = async (payload: DuplicateCheckRequest): Promise<D
   } catch (err: any) {
     if (err.isNetworkError || !navigator.onLine) {
       return simulateDuplicateCheck(payload.description);
+    }
+    throw err;
+  }
+};
+
+// 2.5 Upload Image / Attachment
+export const uploadAttachment = async (file: File): Promise<AttachmentInPayload> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post<ApiResponse<AttachmentInPayload>>('/requests/upload', formData, {
+      headers: {
+        'Content-Type': undefined,
+      },
+    });
+    return response.data.data;
+  } catch (err: any) {
+    if (err.isNetworkError || !navigator.onLine) {
+      return {
+        url: URL.createObjectURL(file),
+        type: 'image',
+        filename: file.name,
+        content_type: file.type || 'image/jpeg',
+        size_bytes: file.size,
+      };
     }
     throw err;
   }

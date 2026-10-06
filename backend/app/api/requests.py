@@ -1,5 +1,6 @@
 """Core Request Management routes.
 
+POST  /requests/upload
 POST  /requests/analyze
 POST  /requests/check-duplicates
 POST  /requests
@@ -10,7 +11,10 @@ PATCH /requests/{request_id}/status
 POST  /requests/{request_id}/assign
 POST  /requests/{request_id}/feedback
 """
-from fastapi import APIRouter, Depends, Query, status
+import os
+import re
+import uuid
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,7 +22,8 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, rate_limit, require_roles
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
-from app.models.enums import Category, Priority, RequestStatus, SLAState, UserRole
+from app.models.attachment import Attachment
+from app.models.enums import AttachmentType, Category, Priority, RequestStatus, SLAState, UserRole
 from app.models.feedback import Feedback
 from app.models.location import Location
 from app.models.request import Request
@@ -32,6 +37,8 @@ from app.schemas.request import (
     AnalyzeResult,
     AssignRequest,
     AssignResult,
+    AttachmentIn,
+    AttachmentOut,
     CheckDuplicatesRequest,
     CreateRequest,
     CreateRequestResult,
@@ -67,6 +74,53 @@ ALLOWED_TRANSITIONS: dict[RequestStatus, set[RequestStatus]] = {
     RequestStatus.rejected: set(),
     RequestStatus.cancelled: set(),
 }
+
+
+@router.post(
+    "/upload",
+    response_model=ApiResponse[AttachmentIn],
+    summary="Upload image or evidence attachment",
+)
+async def upload_attachment(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    if not file or not file.filename:
+        raise BadRequestError("FILE_REQUIRED", "Please select a file to upload.")
+
+    filename = file.filename.strip()
+    ext = ("." + filename.rsplit(".", 1)[-1].lower()) if "." in filename else ""
+    allowed_image_exts = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"}
+    if ext not in allowed_image_exts:
+        raise BadRequestError("INVALID_FILE_TYPE", "Please upload a JPG, PNG, or WEBP image.")
+
+    contents = await file.read()
+    size_bytes = len(contents)
+    max_size_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    if size_bytes > max_size_bytes:
+        raise BadRequestError("FILE_TOO_LARGE", f"Image must be smaller than {settings.MAX_UPLOAD_SIZE_MB} MB.")
+    if size_bytes == 0:
+        raise BadRequestError("EMPTY_FILE", "The uploaded file is empty.")
+
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", os.path.basename(filename))
+    stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(settings.UPLOAD_DIR, stored_name)
+
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    content_type = file.content_type or (f"image/{ext.lstrip('.')}" if ext else "application/octet-stream")
+
+    return ok(
+        AttachmentIn(
+            url=f"/uploads/{stored_name}",
+            type=AttachmentType.image,
+            filename=filename,
+            content_type=content_type,
+            size_bytes=size_bytes,
+        )
+    )
 
 
 @router.post(
@@ -178,6 +232,21 @@ def create_request(
     )
     db.add(req)
     db.flush()
+
+    # 5.5 Attachments
+    if body.attachments:
+        for att_in in body.attachments:
+            att = Attachment(
+                request_id=req.id,
+                url=att_in.url,
+                type=att_in.type,
+                filename=att_in.filename,
+                content_type=att_in.content_type,
+                size_bytes=att_in.size_bytes,
+                uploaded_by=current_user.id,
+            )
+            db.add(att)
+        db.flush()
 
     # Timeline & audit log
     history_service.record(db, req, "REQUEST_CREATED", actor_id=current_user.id)
@@ -381,7 +450,19 @@ def get_request_detail(
             service_id=req.service_id,
             student=UserRef.model_validate(req.student),
             incident=inc_ref,
-            attachments=[],
+            attachments=[
+                AttachmentOut(
+                    id=a.id,
+                    request_id=a.request_id,
+                    url=a.url,
+                    type=a.type,
+                    filename=a.filename,
+                    content_type=a.content_type,
+                    size_bytes=a.size_bytes,
+                    created_at=a.created_at,
+                )
+                for a in (req.attachments or [])
+            ],
             resolved_at=req.resolved_at,
         )
     )

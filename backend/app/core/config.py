@@ -47,9 +47,10 @@ class Settings(BaseSettings):
     # Campus local time (used for working hours / working days). Default IST.
     CAMPUS_UTC_OFFSET_MINUTES: int = 330
 
-    # Attachments (metadata only – binaries live in object storage)
+    # Attachments
     MAX_UPLOAD_SIZE_MB: int = 20
     MAX_ATTACHMENTS_PER_REQUEST: int = 5
+    UPLOAD_DIR: str = "uploads"
 
     # Rate limiting (in-memory, per process)
     RATE_LIMIT_ENABLED: bool = True

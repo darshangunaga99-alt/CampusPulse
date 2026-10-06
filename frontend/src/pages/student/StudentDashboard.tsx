@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [filterCategory, setFilterCategory] = useState('All Statuses');
   const [sortBy, setSortBy] = useState('Urgent SLA');
   const [followed, setFollowed] = useState(false);
+
+  const firstName = user?.first_name || user?.name?.split(' ')[0] || 'Student';
 
   return (
     <div className="flex flex-col gap-space-xl">
@@ -14,7 +18,7 @@ export const StudentDashboard: React.FC = () => {
         <div className="space-y-space-2xs">
           <div className="flex items-center gap-space-xs">
             <span className="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">
-              Good morning, Rahul
+              Good morning, {firstName}
             </span>
             <span className="text-xl">👋</span>
           </div>
@@ -22,34 +26,13 @@ export const StudentDashboard: React.FC = () => {
             Here's what's happening with your campus requests &amp; active community incidents.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-space-xs">
+        <div className="flex items-center">
           <button
             onClick={() => navigate('/student/requests/new')}
-            className="flex items-center gap-space-xs bg-primary text-on-primary px-space-md py-space-xs rounded-lg shadow-sm hover:opacity-90 transition-all font-label-md text-label-md cursor-pointer"
+            className="flex items-center gap-space-xs bg-primary text-on-primary px-space-lg py-space-sm rounded-xl shadow-md hover:opacity-95 active:scale-98 transition-all font-label-md text-sm font-semibold cursor-pointer"
           >
-            <span className="material-symbols-outlined text-base">add_circle</span>
+            <span className="material-symbols-outlined text-lg">add_circle</span>
             <span>Report an Issue</span>
-          </button>
-          <button
-            onClick={() => navigate('/student/requests/new')}
-            className="flex items-center gap-space-xs bg-surface-container text-on-surface px-space-md py-space-xs rounded-lg hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base">build</span>
-            <span>Request a Service</span>
-          </button>
-          <button
-            onClick={() => navigate('/student/requests/new')}
-            className="flex items-center gap-space-xs bg-surface-container text-on-surface px-space-md py-space-xs rounded-lg hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base">qr_code_scanner</span>
-            <span>Scan QR</span>
-          </button>
-          <button
-            onClick={() => navigate('/student/requests')}
-            className="flex items-center gap-space-xs bg-surface-container text-on-surface px-space-md py-space-xs rounded-lg hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base">saved_search</span>
-            <span>Track Ticket</span>
           </button>
         </div>
       </div>

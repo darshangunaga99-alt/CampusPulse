@@ -166,6 +166,66 @@ export const RequestDetail: React.FC = () => {
               </span>
             </div>
           </div>
+
+          {/* Attachments Section if present */}
+          {request.attachments && request.attachments.length > 0 && (
+            <div className="pt-4 border-t border-slate-800 space-y-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                Photo / Evidence Attachment
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {request.attachments.map((att) => {
+                  const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace('/api/v1', '');
+                  const fullUrl = att.url.startsWith('http')
+                    ? att.url
+                    : `${apiBase}${att.url.startsWith('/') ? '' : '/'}${att.url}`;
+                  return (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition-colors"
+                    >
+                      <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                        {att.type === 'image' ? (
+                          <img
+                            src={fullUrl}
+                            alt={att.filename}
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-90"
+                            onClick={() => window.open(fullUrl, '_blank')}
+                          />
+                        ) : (
+                          <span className="text-slate-400 text-xs font-mono">FILE</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <a
+                          href={fullUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-slate-200 hover:text-indigo-400 truncate block"
+                          title={att.filename}
+                        >
+                          {att.filename}
+                        </a>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {att.size_bytes ? `${(att.size_bytes / (1024 * 1024)).toFixed(1)} MB • ` : ''}
+                          {att.type === 'image' ? 'Image' : att.type}
+                        </span>
+                      </div>
+                      <a
+                        href={fullUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg text-xs"
+                        title="Open attachment"
+                      >
+                        ↗
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

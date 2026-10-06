@@ -114,14 +114,68 @@ def update_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if body.name is not None and len(body.name.strip()) >= 2:
+    fields_set = body.model_fields_set
+
+    if "first_name" in fields_set:
+        fn = (body.first_name or "").strip()
+        if not fn:
+            raise BadRequestError("INVALID_NAME", "First name is required.")
+        current_user.first_name = fn
+
+    if "middle_name" in fields_set:
+        mn = (body.middle_name or "").strip()
+        current_user.middle_name = mn or None
+
+    if "last_name" in fields_set:
+        ln = (body.last_name or "").strip()
+        current_user.last_name = ln or None
+
+    # Sync full name from components whenever any name field is updated
+    if any(k in fields_set for k in ("first_name", "middle_name", "last_name")):
+        name_parts = [p for p in [current_user.first_name, current_user.middle_name, current_user.last_name] if p]
+        current_user.name = " ".join(name_parts) if name_parts else (current_user.first_name or "")
+    elif "name" in fields_set and body.name:
         current_user.name = body.name.strip()
-    if body.skills is not None:
+
+    if "usn" in fields_set:
+        current_user.usn = (body.usn or "").strip().upper() or None
+
+    if "course" in fields_set:
+        current_user.course = (body.course or "").strip() or None
+
+    if "phone_number" in fields_set:
+        current_user.phone_number = (body.phone_number or "").strip() or None
+
+    if "email" in fields_set and body.email:
+        new_email = body.email.lower().strip()
+        if new_email != current_user.email.lower():
+            existing = user_repository.get_user_by_email(db, new_email)
+            if existing and existing.id != current_user.id:
+                raise ConflictError("EMAIL_ALREADY_EXISTS", "A user with this email address already exists.")
+            current_user.email = new_email
+
+    if "department" in fields_set:
+        dept_name = (body.department or "").strip()
+        if dept_name:
+            dept = user_repository.find_department(db, dept_name)
+            if not dept:
+                from app.models.department import Department
+                dept_code = "".join([w[0] for w in dept_name.split() if w])[:10].upper() or "DEPT"
+                dept = Department(name=dept_name, code=dept_code, description=f"{dept_name} Department")
+                db.add(dept)
+                db.flush()
+            current_user.department_id = dept.id
+            current_user.department = dept
+        else:
+            current_user.department_id = None
+            current_user.department = None
+
+    if "skills" in fields_set and body.skills is not None:
         current_user.skills = body.skills
-    if body.is_available is not None:
+    if "is_available" in fields_set and body.is_available is not None:
         current_user.is_available = body.is_available
-    if body.home_building is not None:
-        current_user.home_building = body.home_building.strip() or None
+    if "home_building" in fields_set:
+        current_user.home_building = (body.home_building or "").strip() or None
 
     db.commit()
     db.refresh(current_user)

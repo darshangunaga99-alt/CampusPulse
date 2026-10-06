@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { uploadAttachment, createRequest } from '../../api/requests';
+import { Category } from '../../types';
 
 export const NewRequestPage: React.FC = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [selectedCategory, setSelectedCategory] = useState('lab');
@@ -12,8 +15,14 @@ export const NewRequestPage: React.FC = () => {
   const [description, setDescription] = useState(
     'The ceiling projector in CSE Lab 2 suddenly turned off during lecture. When trying to reconnect the HDMI cable, a small spark was noticed near the port. There is no video output now.'
   );
-  const [hasMedia, setHasMedia] = useState(true);
+
+  // Real Attachment States
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // AI correlation toggle state (Screen 2 vs Screen 3)
   const [matchedIncident, setMatchedIncident] = useState<{
@@ -57,6 +66,15 @@ export const NewRequestPage: React.FC = () => {
     if (detected.length > 0) setTokens(detected);
   }, [title, description]);
 
+  // Cleanup object URL on unmount or file change
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const categories = [
     { id: 'electrical', label: '⚡ Electrical & Power', icon: 'bolt' },
     { id: 'wifi', label: '📶 WiFi & Network', icon: 'wifi' },
@@ -66,13 +84,128 @@ export const NewRequestPage: React.FC = () => {
     { id: 'safety', label: '🔒 Safety & Security', icon: 'security' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const categoryMap: Record<string, Category> = {
+    electrical: 'maintenance',
+    wifi: 'it_support',
+    hvac: 'maintenance',
+    plumbing: 'maintenance',
+    lab: 'lab_equipment',
+    safety: 'other',
+  };
+
+  const validateAndSetFile = (file: File) => {
+    setUploadError(null);
+    setSubmitError(null);
+
+    // Accept common image formats: JPG / JPEG, PNG, WEBP
+    const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const validExtensions = /\.(jpe?g|png|webp)$/i;
+
+    const isMimeValid = validMimeTypes.includes(file.type.toLowerCase());
+    const isExtValid = validExtensions.test(file.name);
+
+    if (!isMimeValid && !isExtValid) {
+      setUploadError('Please upload a JPG, PNG, or WEBP image.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Size limit: 10 MB
+    const maxSizeBytes = 10 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      setUploadError('Image must be smaller than 10 MB.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedFile(file);
+    setPreviewUrl(objectUrl);
+  };
+
+  const handleRemoveImage = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setUploadError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return `${Math.round(bytes / 1024)} KB`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !description.trim()) return;
+
     setIsSubmitting(true);
-    setTimeout(() => {
+    setSubmitError(null);
+
+    try {
+      let attachmentPayload = undefined;
+
+      if (selectedFile) {
+        try {
+          const uploaded = await uploadAttachment(selectedFile);
+          attachmentPayload = [uploaded];
+        } catch (uploadErr: any) {
+          console.error('Upload failed:', uploadErr);
+          setSubmitError(uploadErr?.message || 'Unable to upload the image. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const res = await createRequest({
+        title: title.trim(),
+        description: description.trim(),
+        category: categoryMap[selectedCategory] || 'lab_equipment',
+        location: {
+          building: building.trim(),
+          room: room.trim() || undefined,
+        },
+        attachments: attachmentPayload,
+      });
+
+      navigate(`/student/requests/${res.id}`);
+    } catch (err: any) {
+      console.error('Request creation failed:', err);
+      setSubmitError(err?.message || 'Unable to submit the request. Please try again.');
       setIsSubmitting(false);
-      navigate('/student/requests/REQ-2026-000123');
-    }, 800);
+    }
   };
 
   const handleMergeWithIncident = () => {
@@ -209,38 +342,93 @@ export const NewRequestPage: React.FC = () => {
 
             {/* Media Attachment Upload */}
             <div className="space-y-space-2xs">
-              <label className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
-                Photo / Evidence Attachment
-              </label>
-              {hasMedia ? (
-                <div className="flex items-center gap-space-md p-space-md bg-surface-container-low rounded-xl border border-surface-container-high">
-                  <div className="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant relative overflow-hidden">
-                    <span className="material-symbols-outlined text-2xl">image</span>
+              <div className="flex items-center justify-between">
+                <label className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">
+                  Photo / Evidence Attachment
+                </label>
+                <span className="font-mono-data-sm text-[11px] text-on-surface-variant">
+                  Optional • JPG, PNG, WEBP (Max 10 MB)
+                </span>
+              </div>
+
+              {/* Hidden native file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    validateAndSetFile(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+                id="evidence-file-input"
+              />
+
+              {selectedFile && previewUrl ? (
+                <div className="flex items-center gap-space-md p-space-md bg-surface-container-low rounded-xl border border-surface-container-high transition-all">
+                  <div className="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant relative overflow-hidden shrink-0 border border-surface-container-high">
+                    <img
+                      src={previewUrl}
+                      alt="Evidence preview"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="font-body-sm text-body-sm font-semibold text-on-surface">projector_hdmi_spark.jpg</p>
-                    <p className="font-mono-data-sm text-[11px] text-on-surface-variant">2.4 MB • Image Attached</p>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="font-body-sm text-body-sm font-semibold text-on-surface truncate" title={selectedFile.name}>
+                      {selectedFile.name}
+                    </p>
+                    <p className="font-mono-data-sm text-[11px] text-on-surface-variant">
+                      {formatFileSize(selectedFile.size)} • Image
+                    </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setHasMedia(false)}
-                    className="p-space-xs text-error hover:bg-error-container/40 rounded-lg transition-colors cursor-pointer"
+                    onClick={handleRemoveImage}
+                    className="flex items-center gap-1 px-space-sm py-space-xs text-error hover:bg-error-container/40 rounded-lg transition-colors cursor-pointer font-label-md text-label-md shrink-0"
+                    title="Remove attachment"
                   >
                     <span className="material-symbols-outlined text-lg">delete</span>
+                    <span className="hidden sm:inline">Remove</span>
                   </button>
                 </div>
               ) : (
                 <div
-                  onClick={() => setHasMedia(true)}
-                  className="border-2 border-dashed border-surface-container-high rounded-xl p-space-lg text-center cursor-pointer hover:bg-surface-container-low transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragEnter={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-xl p-space-lg text-center cursor-pointer transition-all ${
+                    isDragging
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.01]'
+                      : 'border-surface-container-high hover:bg-surface-container-low hover:border-secondary/50'
+                  }`}
                 >
                   <span className="material-symbols-outlined text-on-surface-variant text-3xl">add_photo_alternate</span>
                   <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
                     Click to attach photo or drag &amp; drop evidence
                   </p>
+                  <p className="font-mono-data-sm text-[11px] text-on-surface-variant/70 mt-0.5">
+                    Supports JPG, PNG, or WEBP up to 10 MB
+                  </p>
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="flex items-center gap-1.5 p-space-xs px-space-sm bg-error-container text-on-error-container rounded-lg text-xs font-medium animate-in fade-in duration-200">
+                  <span className="material-symbols-outlined text-base text-error">error</span>
+                  <span>{uploadError}</span>
                 </div>
               )}
             </div>
+
+            {submitError && (
+              <div className="flex items-center gap-1.5 p-space-sm bg-error-container text-on-error-container rounded-lg text-xs font-medium">
+                <span className="material-symbols-outlined text-base text-error">error</span>
+                <span>{submitError}</span>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-end gap-space-sm pt-space-sm border-t border-surface-container-high/40">

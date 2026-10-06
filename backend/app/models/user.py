@@ -12,6 +12,12 @@ class User(Base, TimestampMixin):
 
     id: Mapped[str] = id_column("usr")
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String(60))
+    middle_name: Mapped[str | None] = mapped_column(String(60))
+    last_name: Mapped[str | None] = mapped_column(String(60))
+    usn: Mapped[str | None] = mapped_column(String(30), index=True)
+    course: Mapped[str | None] = mapped_column(String(100))
+    phone_number: Mapped[str | None] = mapped_column(String(30))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(enum_col(UserRole, name="user_role"), nullable=False, index=True)

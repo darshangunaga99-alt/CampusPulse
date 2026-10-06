@@ -106,11 +106,36 @@ def seed():
             home_building="Facilities Annex", is_available=True, working_hours_start=8, working_hours_end=17
         )
 
-        student_rahul = User(id="usr_rahul", name="Rahul Kumar", email="rahul@example.com", password_hash=pwd_student, role=UserRole.student)
-        student_ananya = User(id="usr_ananya", name="Ananya Gupta", email="ananya@example.com", password_hash=pwd_student, role=UserRole.student)
-        student_vikram = User(id="usr_vikram", name="Vikram Rao", email="vikram@example.com", password_hash=pwd_student, role=UserRole.student)
-        student_sneha = User(id="usr_sneha", name="Sneha Patel", email="sneha@example.com", password_hash=pwd_student, role=UserRole.student)
-        student_rohan = User(id="usr_rohan", name="Rohan Mehta", email="rohan@example.com", password_hash=pwd_student, role=UserRole.student)
+        student_rahul = User(
+            id="usr_rahul", name="Rahul Kumar", first_name="Rahul", last_name="Kumar",
+            email="rahul@example.com", password_hash=pwd_student, role=UserRole.student,
+            department_id=dept_acad.id, usn="4XX22CS001", course="B.E. Computer Science",
+            phone_number="+91 98765 43210"
+        )
+        student_ananya = User(
+            id="usr_ananya", name="Ananya Gupta", first_name="Ananya", last_name="Gupta",
+            email="ananya@example.com", password_hash=pwd_student, role=UserRole.student,
+            department_id=dept_acad.id, usn="4XX22EC014", course="B.E. Electronics & Communication",
+            phone_number="+91 98765 43211"
+        )
+        student_vikram = User(
+            id="usr_vikram", name="Vikram Rao", first_name="Vikram", last_name="Rao",
+            email="vikram@example.com", password_hash=pwd_student, role=UserRole.student,
+            department_id=dept_acad.id, usn="4XX22ME032", course="B.E. Mechanical Engineering",
+            phone_number="+91 98765 43212"
+        )
+        student_sneha = User(
+            id="usr_sneha", name="Sneha Patel", first_name="Sneha", last_name="Patel",
+            email="sneha@example.com", password_hash=pwd_student, role=UserRole.student,
+            department_id=dept_acad.id, usn="4XX22IS045", course="B.E. Information Science",
+            phone_number="+91 98765 43213"
+        )
+        student_rohan = User(
+            id="usr_rohan", name="Rohan Mehta", first_name="Rohan", last_name="Mehta",
+            email="rohan@example.com", password_hash=pwd_student, role=UserRole.student,
+            department_id=dept_acad.id, usn="4XX22CV019", course="B.E. Civil Engineering",
+            phone_number="+91 98765 43214"
+        )
 
         auditor = User(id="usr_auditor", name="Kavita Iyer", email="auditor@campuspulse.edu", password_hash=pwd_auditor, role=UserRole.auditor)
 

@@ -184,3 +184,45 @@ def test_status_update_and_feedback_reopen(client, seed_data):
     # Verify request was reopened to in_progress
     req_res = client.get(f"/api/v1/requests/{req_id}", headers=s_headers)
     assert req_res.json()["data"]["status"] == "in_progress"
+
+
+def test_upload_attachment_and_create_request(client, seed_data):
+    s_headers = auth_header(seed_data["student1"])
+
+    # 1. Test upload image
+    file_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4"
+    upload_res = client.post(
+        "/api/v1/requests/upload",
+        headers=s_headers,
+        files={"file": ("evidence.png", file_bytes, "image/png")},
+    )
+    assert upload_res.status_code == 200
+    upload_data = upload_res.json()["data"]
+    assert upload_data["filename"] == "evidence.png"
+    assert upload_data["type"] == "image"
+    assert upload_data["url"].startswith("/uploads/")
+    assert upload_data["size_bytes"] == len(file_bytes)
+
+    # 2. Test create request with attachment
+    create_res = client.post(
+        "/api/v1/requests",
+        headers=s_headers,
+        json={
+            "title": "Broken equipment photo proof",
+            "description": "Attached photo shows physical damage to projector power cord.",
+            "category": "lab_equipment",
+            "attachments": [upload_data],
+        },
+    )
+    assert create_res.status_code == 201
+    req_id = create_res.json()["data"]["id"]
+
+    # 3. Test get request detail includes attachment
+    detail_res = client.get(f"/api/v1/requests/{req_id}", headers=s_headers)
+    assert detail_res.status_code == 200
+    detail_data = detail_res.json()["data"]
+    assert len(detail_data["attachments"]) == 1
+    att = detail_data["attachments"][0]
+    assert att["filename"] == "evidence.png"
+    assert att["url"] == upload_data["url"]
+    assert att["type"] == "image"

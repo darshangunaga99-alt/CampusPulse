@@ -83,8 +83,8 @@ class AttachmentIn(BaseModel):
     @field_validator("url")
     @classmethod
     def validate_url(cls, v: str) -> str:
-        if not re.match(r"^https?://[^\s]+$", v):
-            raise ValueError("url must be an http(s) URL pointing to object storage")
+        if not re.match(r"^(https?://|/uploads/|uploads/|/api/)[^\s]+$", v):
+            raise ValueError("url must be an http(s) URL or valid upload path")
         return v
 
     @field_validator("filename")
@@ -105,6 +105,8 @@ class AttachmentOut(BaseModel):
     url: str
     type: AttachmentType
     filename: str
+    content_type: str | None = None
+    size_bytes: int | None = None
     created_at: datetime
 
 

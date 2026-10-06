@@ -14,6 +14,8 @@ interface AuthContextType {
   register: (payload: RegisterPayload) => Promise<User>;
   logout: () => void;
   switchRolePreview: (role: Role) => void;
+  updateUser: (updatedUser: User) => void;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,6 +122,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('campuspulse_token', mockToken);
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('campuspulse_user', JSON.stringify(updatedUser));
+  };
+
+  const refreshUser = async (): Promise<User | null> => {
+    try {
+      const freshUser = await authApi.getMe();
+      setUser(freshUser);
+      localStorage.setItem('campuspulse_user', JSON.stringify(freshUser));
+      return freshUser;
+    } catch {
+      return user;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -132,6 +150,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         switchRolePreview,
+        updateUser,
+        refreshUser,
       }}
     >
       {children}

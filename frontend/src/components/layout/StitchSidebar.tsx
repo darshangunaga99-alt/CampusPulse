@@ -130,15 +130,9 @@ const DEPARTMENT_HEAD_NAV: NavSection[] = [
 
 const ADMIN_NAV: NavSection[] = [
   {
-    title: 'STUDENT SERVICES',
-    items: [
-      { label: 'Student Dashboard', to: '/student/dashboard', icon: 'school' },
-      { label: 'All Requests', to: '/admin/requests', icon: 'inbox' },
-    ],
-  },
-  {
     title: 'OPERATIONS & INCIDENTS',
     items: [
+      { label: 'All Requests', to: '/admin/requests', icon: 'inbox' },
       {
         label: 'Incident War Room',
         to: '/admin/incidents',

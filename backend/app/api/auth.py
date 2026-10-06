@@ -15,7 +15,7 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.models.enums import UserRole
 from app.models.user import User
 from app.repositories import user_repository
-from app.schemas.auth import AuthData, LoginRequest, RegisterRequest, UserOut, user_out
+from app.schemas.auth import AuthData, LoginRequest, RegisterRequest, UpdateProfileRequest, UserOut, user_out
 from app.schemas.common import ApiResponse, ERROR_RESPONSES, ok
 from app.services import audit_service
 
@@ -103,3 +103,28 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 )
 def me(current_user: User = Depends(get_current_user)):
     return ok(user_out(current_user))
+
+
+@router.patch(
+    "/me",
+    response_model=ApiResponse[UserOut],
+)
+def update_profile(
+    body: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if body.name is not None and len(body.name.strip()) >= 2:
+        current_user.name = body.name.strip()
+    if body.skills is not None:
+        current_user.skills = body.skills
+    if body.is_available is not None:
+        current_user.is_available = body.is_available
+    if body.home_building is not None:
+        current_user.home_building = body.home_building.strip() or None
+
+    db.commit()
+    db.refresh(current_user)
+    audit_service.log(db, "PROFILE_UPDATED", "user", current_user.id, actor_id=current_user.id)
+    return ok(user_out(current_user))
+

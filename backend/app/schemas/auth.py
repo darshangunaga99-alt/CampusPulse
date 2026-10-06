@@ -11,6 +11,9 @@ class UserOut(BaseModel):
     email: str = Field(examples=["rahul@example.com"])
     role: UserRole
     department: str | None = Field(default=None, description="Department name (additive field, v1.1)")
+    skills: list[str] = Field(default_factory=list)
+    is_available: bool = True
+    home_building: str | None = None
 
 
 def user_out(user) -> UserOut:
@@ -19,8 +22,18 @@ def user_out(user) -> UserOut:
         name=user.name,
         email=user.email,
         role=user.role,
-        department=user.department.name if user.department else None,
+        department=user.department.name if getattr(user, "department", None) else None,
+        skills=getattr(user, "skills", []) or [],
+        is_available=getattr(user, "is_available", True),
+        home_building=getattr(user, "home_building", None),
     )
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    skills: list[str] | None = None
+    is_available: bool | None = None
+    home_building: str | None = None
 
 
 class RegisterRequest(BaseModel):

@@ -1,39 +1,34 @@
-/**
- * CampusPulse — StitchHeader
- *
- * The top navigation bar. Includes:
- * - Brand logo / version
- * - Global search
- * - Campus health score (admin only)
- * - Notifications bell (role-aware destination)
- * - Persona switcher (dev convenience) — shows all 5 roles
- */
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_HOME_ROUTES, ROLE_LABELS } from '../../auth/roles';
+import { ROLE_LABELS } from '../../auth/roles';
 import { hasPermission } from '../../auth/permissions';
-import type { Role } from '../../auth/roles';
 
 interface StitchHeaderProps {
   onSearch?: (query: string) => void;
 }
 
-// Persona entries for the dev switcher
-const PERSONAS: { role: Role; label: string; subtitle: string }[] = [
-  { role: 'student', label: 'Student View', subtitle: 'Rahul Kumar · CS Dept' },
-  { role: 'staff', label: 'Staff & Dispatch Queue', subtitle: 'Anil Sharma · IT' },
-  { role: 'department_head', label: 'Department Head', subtitle: 'Dr. Priya Sundaram · IT Support' },
-  { role: 'admin', label: 'Campus Command / Admin', subtitle: 'Vikram Mehta · Operations' },
-  { role: 'auditor', label: 'Compliance Auditor', subtitle: 'Sneha Patel · Quality Cell' },
-];
-
 export const StitchHeader: React.FC<StitchHeaderProps> = ({ onSearch }) => {
-  const { user, role, switchRolePreview } = useAuth();
+  const { user, role, logout } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [searchVal, setSearchVal] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowRoleDropdown(false);
+      }
+    };
+    if (showRoleDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showRoleDropdown]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && onSearch) onSearch(searchVal);
@@ -139,17 +134,19 @@ export const StitchHeader: React.FC<StitchHeaderProps> = ({ onSearch }) => {
           </span>
         </div>
 
-        {/* User / Persona Switcher */}
-        <div className="relative">
+        {/* User Profile Menu Dropdown */}
+        <div className="relative" ref={dropdownRef}>
           <button
-            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+            onClick={() => setShowRoleDropdown((prev) => !prev)}
+            aria-expanded={showRoleDropdown}
+            aria-haspopup="true"
             className="flex items-center gap-space-sm bg-surface-container-low pl-space-xs pr-space-md py-space-xs rounded-full cursor-pointer hover:bg-surface-container transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">
               {user?.name?.charAt(0) ?? 'U'}
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-label-md text-label-md text-on-surface font-semibold leading-tight">
+              <span className="font-label-md text-label-md text-on-surface font-semibold leading-tight truncate max-w-[120px]">
                 {user?.name ?? 'User'}
               </span>
               <span className="font-label-sm text-label-sm text-on-surface-variant leading-tight">
@@ -161,37 +158,50 @@ export const StitchHeader: React.FC<StitchHeaderProps> = ({ onSearch }) => {
             </span>
           </button>
 
-          {/* Persona Switch Menu */}
+          {/* Clean Profile Dropdown (No Persona Switcher) */}
           {showRoleDropdown && (
-            <div className="absolute right-0 mt-2 w-72 bg-surface-container-lowest rounded-xl shadow-lg border border-surface-container-high py-2 z-50">
-              <div className="px-4 py-2 border-b border-surface-container-high">
-                <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant/70">
-                  Switch Persona (Dev Preview)
-                </p>
-              </div>
-              {PERSONAS.map(({ role: pRole, label, subtitle }) => (
-                <button
-                  key={pRole}
-                  onClick={() => {
-                    switchRolePreview(pRole);
-                    setShowRoleDropdown(false);
-                    navigate(ROLE_HOME_ROUTES[pRole]);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                    currentRole === pRole
-                      ? 'bg-primary-container text-on-primary-container font-semibold'
-                      : 'text-on-surface hover:bg-surface-container-high'
-                  }`}
-                >
-                  <div>
-                    <div className="font-label-md text-label-md">{label}</div>
-                    <div className="font-label-sm text-label-sm opacity-70">{subtitle}</div>
+            <div className="absolute right-0 mt-2 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/30 py-2 z-50 overflow-hidden animate-in fade-in duration-150">
+              {/* Authenticated User Info Header */}
+              <div className="px-4 py-3 border-b border-outline-variant/20 bg-surface-container-low/50">
+                <div className="font-headline-sm text-sm font-semibold text-on-surface truncate">
+                  {user?.name ?? 'Authenticated User'}
+                </div>
+                <div className="font-body-sm text-xs text-on-surface-variant truncate mt-0.5">
+                  {user?.email ?? 'user@campuspulse.edu'}
+                </div>
+                {user?.department && (
+                  <div className="inline-block mt-2 font-label-sm text-[11px] text-secondary bg-secondary-container/15 border border-secondary/20 px-2 py-0.5 rounded-md font-medium">
+                    Dept: {user.department}
                   </div>
-                  {currentRole === pRole && (
-                    <span className="material-symbols-outlined text-sm">check</span>
-                  )}
+                )}
+              </div>
+
+              {/* Profile Navigation Option */}
+              <div className="py-1 px-2">
+                <Link
+                  to="/profile"
+                  onClick={() => setShowRoleDropdown(false)}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-2.5 font-medium cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-lg text-on-surface-variant">person</span>
+                  <span>Profile</span>
+                </Link>
+              </div>
+
+              {/* Sign Out Option */}
+              <div className="border-t border-outline-variant/20 pt-1 px-2">
+                <button
+                  onClick={() => {
+                    setShowRoleDropdown(false);
+                    logout();
+                    navigate('/login', { replace: true });
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-error font-semibold flex items-center gap-2.5 hover:bg-error-container/40 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-lg">logout</span>
+                  <span>Sign Out</span>
                 </button>
-              ))}
+              </div>
             </div>
           )}
         </div>

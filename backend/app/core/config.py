@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     SELF_REGISTER_ROLES: str = "student"
 
     # CORS – comma separated list
-    ALLOWED_ORIGINS: str = "http://localhost:5173"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174"
 
     # AI provider: none | gemini | openai
     AI_PROVIDER: str = "none"

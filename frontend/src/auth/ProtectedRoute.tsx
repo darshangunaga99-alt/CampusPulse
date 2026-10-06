@@ -67,11 +67,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, role, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  // While auth is initialising, render nothing to avoid flash
+  // While auth is initialising, render dark loading screen to prevent any dashboard flash
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <span className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30 animate-pulse">
+            CP
+          </div>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+            <span className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <span>Checking authentication...</span>
+          </div>
+        </div>
       </div>
     );
   }

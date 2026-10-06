@@ -88,22 +88,6 @@ All errors should follow:
 
 # 4. HTTP Status Codes
 
-<<<<<<< HEAD
-| Status | Meaning |
-|---|---|
-| 200 | Successful request |
-| 201 | Resource created |
-| 204 | Successful request with no response body |
-| 400 | Bad request |
-| 401 | Authentication required/invalid token |
-| 403 | Insufficient permissions |
-| 404 | Resource not found |
-| 409 | Conflict |
-| 422 | Validation error |
-| 429 | Too many requests |
-| 500 | Internal server error |
-| 503 | External service/AI temporarily unavailable |
-=======
 | Status | Meaning                                     |
 | ------ | ------------------------------------------- |
 | 200    | Successful request                          |
@@ -118,7 +102,6 @@ All errors should follow:
 | 429    | Too many requests                           |
 | 500    | Internal server error                       |
 | 503    | External service/AI temporarily unavailable |
->>>>>>> 842545cf49e48dba61ba3d909f5314c67a0bdf49
 
 ---
 
@@ -870,15 +853,7 @@ GET /incidents/{incident_id}
     "priority": "high",
     "department": "IT",
     "affected_students": 18,
-<<<<<<< HEAD
-    "linked_requests": [
-      "req_101",
-      "req_102",
-      "req_103"
-    ],
-=======
     "linked_requests": ["req_101", "req_102", "req_103"],
->>>>>>> 842545cf49e48dba61ba3d909f5314c67a0bdf49
     "location": {
       "building": "Block B",
       "floor": 2,
@@ -1821,8 +1796,4 @@ An endpoint is considered complete only when:
 
 If the frontend expects a field that is not documented here, it should not be assumed to exist.
 
-<<<<<<< HEAD
 If the backend changes a documented field, the contract must be updated and both developers must agree before integration.
-=======
-If the backend changes a documented field, the contract must be updated and both developers must agree before integration.
->>>>>>> 842545cf49e48dba61ba3d909f5314c67a0bdf49

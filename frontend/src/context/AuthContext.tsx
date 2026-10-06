@@ -19,13 +19,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('campuspulse_user');
-    return saved ? JSON.parse(saved) : mockUsers.student;
-  });
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('campuspulse_token') || 'demo_token_student';
+    return localStorage.getItem('campuspulse_token');
   });
+
+  const [user, setUser] = useState<User | null>(() => {
+    const savedToken = localStorage.getItem('campuspulse_token');
+    const savedUser = localStorage.getItem('campuspulse_user');
+    if (savedToken && savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -36,9 +46,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const currentUser = await authApi.getMe();
           setUser(currentUser);
           localStorage.setItem('campuspulse_user', JSON.stringify(currentUser));
-        } catch {
-          // Keep current user state or fallback gracefully
+        } catch (err: any) {
+          // If token was invalid/expired or unauthorized (status 401/403)
+          if (err?.status === 401 || err?.status === 403 || err?.code === 'AUTH_REQUIRED') {
+            localStorage.removeItem('campuspulse_token');
+            localStorage.removeItem('campuspulse_user');
+            setUser(null);
+            setToken(null);
+          }
+          // If network error, we retain the cached user from localStorage
         }
+      } else {
+        setUser(null);
+        setToken(null);
       }
       setIsLoading(false);
     };
@@ -46,6 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
 
     const handleUnauthorized = () => {
+      localStorage.removeItem('campuspulse_token');
+      localStorage.removeItem('campuspulse_user');
       setUser(null);
       setToken(null);
     };
@@ -91,10 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchRolePreview = (newRole: Role) => {
     const mockUser = mockUsers[newRole] || mockUsers.student;
+    const mockToken = `mock_token_${newRole}_${Date.now()}`;
     setUser(mockUser);
+    setToken(mockToken);
     localStorage.setItem('campuspulse_user', JSON.stringify(mockUser));
-    localStorage.setItem('campuspulse_token', `mock_token_${newRole}`);
-    setToken(`mock_token_${newRole}`);
+    localStorage.setItem('campuspulse_token', mockToken);
   };
 
   return (
@@ -103,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         token,
         role: user?.role || null,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && !!token,
         isLoading,
         login,
         register,

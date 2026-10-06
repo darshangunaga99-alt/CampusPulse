@@ -58,9 +58,12 @@ export const getMe = async (): Promise<User> => {
     if (err.isNetworkError || !navigator.onLine) {
       const savedUserStr = localStorage.getItem('campuspulse_user');
       if (savedUserStr) {
-        return JSON.parse(savedUserStr);
+        try {
+          return JSON.parse(savedUserStr);
+        } catch {
+          // ignore error and rethrow below
+        }
       }
-      return mockUsers.student;
     }
     throw err;
   }

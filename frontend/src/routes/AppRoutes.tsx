@@ -53,6 +53,9 @@ import { AdminUsers } from '../pages/admin/AdminUsers';
 // ── Auditor Pages ─────────────────────────────────────────────────────────────
 import { AuditorDashboard } from '../pages/auditor/AuditorDashboard';
 
+// ── Common / Profile Pages ───────────────────────────────────────────────────
+import { ProfilePage } from '../pages/common/ProfilePage';
+
 // ── Error ─────────────────────────────────────────────────────────────────────
 import { ErrorState } from '../components/common/ErrorState';
 
@@ -60,9 +63,26 @@ import { ErrorState } from '../components/common/ErrorState';
 // Root redirect: send each user to their role's home page
 // ─────────────────────────────────────────────────────────────────────────────
 const RootRedirect: React.FC = () => {
-  const { role, isAuthenticated } = useAuth();
+  const { role, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30 animate-pulse">
+            CP
+          </div>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+            <span className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <span>Checking authentication...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated || !role) return <Navigate to="/login" replace />;
-  return <Navigate to={ROLE_HOME_ROUTES[role]} replace />;
+  return <Navigate to={ROLE_HOME_ROUTES[role] || '/login'} replace />;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,22 +91,21 @@ const RootRedirect: React.FC = () => {
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* ── Public ── */}
+      {/* ── Public Auth ── */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
+      {/* ── Root Route: Auth-Aware Redirect ── */}
+      <Route path="/" element={<RootRedirect />} />
+
       {/* ── Protected Shell ── */}
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }
       >
-        {/* Root → role home */}
-        <Route index element={<RootRedirect />} />
-
         {/* ── STUDENT ─────────────────────────────────────────────────────── */}
         <Route
           path="student/dashboard"
@@ -301,6 +320,16 @@ export const AppRoutes: React.FC = () => {
               requireAnyPermission={['audit_read_requests', 'audit_read_logs']}
             >
               <AuditorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ── PROFILE (All authenticated users) ───────────────────────── */}
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

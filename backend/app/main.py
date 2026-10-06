@@ -56,6 +56,11 @@ async def lifespan(app: FastAPI):
     if settings.AUTO_CREATE_TABLES or settings.is_sqlite:
         log.info("Initializing database tables...")
         Base.metadata.create_all(bind=engine)
+        try:
+            from app.seed import seed
+            seed()
+        except Exception as e:
+            log.warning("Seed execution notice: %s", e)
 
     # Start SLA monitor loop in background
     monitor_task = asyncio.create_task(sla_monitor_background_loop())

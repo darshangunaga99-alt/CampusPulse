@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ==============================================================================
 # Byte-compiled / optimized / DLL files
 # ==============================================================================
@@ -82,10 +83,16 @@ temp/
 # Node / Frontend (for future web client)
 # ==============================================================================
 node_modules/
+=======
+# Logs
+logs
+*.log
+>>>>>>> 842545cf49e48dba61ba3d909f5314c67a0bdf49
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+<<<<<<< HEAD
 .next/
 out/
 
@@ -103,3 +110,51 @@ ehthumbs.db
 *.swp
 *.swo
 *~
+=======
+lerna-debug.log*
+
+# Diagnostic / IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Dependencies
+node_modules/
+**/node_modules/
+jspm_packages/
+
+# Build Outputs
+dist/
+**/dist/
+dist-ssr/
+*.local
+.vite/
+**/.vite/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!*.env.example
+!.env.example
+
+# Python / Backend (if colocated)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+>>>>>>> 842545cf49e48dba61ba3d909f5314c67a0bdf49

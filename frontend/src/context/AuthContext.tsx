@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Role, LoginPayload, RegisterPayload } from '../types';
+import type { User, LoginPayload, RegisterPayload } from '../types';
+import type { Role } from '../auth/roles';
 import * as authApi from '../api/auth';
 import { mockUsers } from '../mock/mockData';
 

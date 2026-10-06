@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 interface MasterIncidentBannerProps {
   title?: string;
@@ -21,6 +22,21 @@ export const MasterIncidentBanner: React.FC<MasterIncidentBannerProps> = ({
   onFollow,
 }) => {
   const navigate = useNavigate();
+  const { role } = useAuth();
+
+  const handleNavigateToIncident = () => {
+    if (role === 'staff') {
+      navigate(`/staff/incidents?id=${incidentId}`);
+    } else if (role === 'department_head') {
+      navigate(`/department/incidents?id=${incidentId}`);
+    } else if (role === 'admin') {
+      navigate(`/admin/incidents?id=${incidentId}`);
+    } else if (role === 'auditor') {
+      navigate(`/auditor/incidents?id=${incidentId}`);
+    } else {
+      navigate(`/student/incidents?id=${incidentId}`);
+    }
+  };
 
   return (
     <div className="relative overflow-hidden bg-error-container text-on-error-container rounded-xl p-space-xl shadow-sm border border-error/20">
@@ -64,7 +80,7 @@ export const MasterIncidentBanner: React.FC<MasterIncidentBannerProps> = ({
             <span>Follow Incident</span>
           </button>
           <button
-            onClick={() => navigate(`/student/incidents?id=${incidentId}`)}
+            onClick={handleNavigateToIncident}
             className="flex items-center justify-center gap-space-xs bg-error text-on-error px-space-md py-space-xs rounded-lg hover:opacity-90 transition-opacity font-label-md text-label-md shadow-sm cursor-pointer"
           >
             <span>View War Room</span>

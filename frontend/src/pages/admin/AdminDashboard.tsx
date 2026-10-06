@@ -225,7 +225,7 @@ export const AdminDashboard: React.FC = () => {
                 <td className="p-space-sm font-medium">Vikram Das (AV Lead)</td>
                 <td className="p-space-sm">
                   <button
-                    onClick={() => navigate('/student/requests/REQ-2026-000123')}
+                    onClick={() => navigate('/staff/requests/REQ-2026-000123')}
                     className="px-3 py-1 bg-surface-container text-on-surface text-xs rounded hover:bg-surface-container-high cursor-pointer font-semibold"
                   >
                     Inspect
@@ -240,7 +240,7 @@ export const AdminDashboard: React.FC = () => {
                 <td className="p-space-sm font-medium">Manoj Sen (HVAC Lead)</td>
                 <td className="p-space-sm">
                   <button
-                    onClick={() => navigate('/student/requests/REQ-2026-000098')}
+                    onClick={() => navigate('/staff/requests/REQ-2026-000098')}
                     className="px-3 py-1 bg-surface-container text-on-surface text-xs rounded hover:bg-surface-container-high cursor-pointer font-semibold"
                   >
                     Inspect

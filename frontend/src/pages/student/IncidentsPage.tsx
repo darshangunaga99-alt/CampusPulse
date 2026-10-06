@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { ROLE_HOME_ROUTES } from '../../auth/roles';
 
 export const IncidentsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [selectedIncident, setSelectedIncident] = useState('INC-2024-042');
+  const { role } = useAuth();
+  const incidentIdParam = searchParams.get('id');
+  const [selectedIncident, setSelectedIncident] = useState(incidentIdParam || 'INC-2024-042');
   const [broadcastSent, setBroadcastSent] = useState(false);
   const [broadcastText, setBroadcastText] = useState('');
+
+  useEffect(() => {
+    if (incidentIdParam) {
+      setSelectedIncident(incidentIdParam);
+    }
+  }, [incidentIdParam]);
 
   const merged = searchParams.get('merged') === 'true';
 
@@ -136,7 +146,13 @@ export const IncidentsPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-space-xs shrink-0">
             <button
-              onClick={() => navigate('/student/dashboard')}
+              onClick={() => {
+                if (role && ROLE_HOME_ROUTES[role]) {
+                  navigate(ROLE_HOME_ROUTES[role]);
+                } else {
+                  navigate(-1);
+                }
+              }}
               className="px-space-md py-space-xs bg-surface-container-lowest text-on-surface rounded-lg font-label-md text-label-md hover:bg-surface transition-colors cursor-pointer shadow-sm"
             >
               Exit War Room
@@ -217,7 +233,13 @@ export const IncidentsPage: React.FC = () => {
               {current.linkedTickets.map((t) => (
                 <div
                   key={t.id}
-                  onClick={() => navigate(`/student/requests/${t.id}`)}
+                  onClick={() => {
+                    if (role === 'staff' || role === 'department_head' || role === 'admin') {
+                      navigate(`/staff/requests/${t.id}`);
+                    } else {
+                      navigate(`/student/requests/${t.id}`);
+                    }
+                  }}
                   className="p-space-md bg-surface-container-low rounded-xl border border-surface-container-high hover:border-secondary transition-colors cursor-pointer space-y-1"
                 >
                   <div className="flex items-center justify-between">

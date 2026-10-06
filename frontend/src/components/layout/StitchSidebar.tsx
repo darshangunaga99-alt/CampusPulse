@@ -83,7 +83,7 @@ const STAFF_NAV: NavSection[] = [
     items: [
       {
         label: 'Active Incidents',
-        to: '/admin/incidents',
+        to: '/staff/incidents',
         icon: 'emergency',
         badge: 'Live',
         badgeVariant: 'secondary',

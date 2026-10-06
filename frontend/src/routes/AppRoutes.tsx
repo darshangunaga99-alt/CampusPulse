@@ -36,6 +36,7 @@ import { StudentNotifications } from '../pages/student/StudentNotifications';
 import { StaffDashboard } from '../pages/staff/StaffDashboard';
 import { StaffRequests } from '../pages/staff/StaffRequests';
 import { StaffRequestDetail } from '../pages/staff/StaffRequestDetail';
+import { StaffIncidents } from '../pages/staff/StaffIncidents';
 
 // ── Department Head Pages ─────────────────────────────────────────────────────
 import { DepartmentDashboard } from '../pages/department/DepartmentDashboard';
@@ -52,6 +53,7 @@ import { AdminUsers } from '../pages/admin/AdminUsers';
 
 // ── Auditor Pages ─────────────────────────────────────────────────────────────
 import { AuditorDashboard } from '../pages/auditor/AuditorDashboard';
+import { AuditorIncidents } from '../pages/auditor/AuditorIncidents';
 
 // ── Common / Profile Pages ───────────────────────────────────────────────────
 import { ProfilePage } from '../pages/common/ProfilePage';
@@ -106,6 +108,24 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
+        {/* ── COMMON / ACTIVE INCIDENTS ────────────────────────────── */}
+        <Route
+          path="incidents"
+          element={
+            <ProtectedRoute
+              requireAnyPermission={[
+                'view_student_incidents',
+                'view_relevant_incidents',
+                'view_department_incidents',
+                'view_all_incidents',
+                'audit_read_incidents',
+              ]}
+            >
+              <StudentIncidentsPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* ── STUDENT ─────────────────────────────────────────────────────── */}
         <Route
           path="student/dashboard"
@@ -152,8 +172,13 @@ export const AppRoutes: React.FC = () => {
           path="student/incidents"
           element={
             <ProtectedRoute
-              allowedRoles={['student']}
-              requireAnyPermission={['view_student_incidents']}
+              requireAnyPermission={[
+                'view_student_incidents',
+                'view_relevant_incidents',
+                'view_department_incidents',
+                'view_all_incidents',
+                'audit_read_incidents',
+              ]}
             >
               <StudentIncidentsPage />
             </ProtectedRoute>
@@ -196,6 +221,17 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={['staff', 'department_head', 'admin']}>
               <StaffRequestDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="staff/incidents"
+          element={
+            <ProtectedRoute
+              allowedRoles={['staff', 'department_head', 'admin']}
+              requireAnyPermission={['view_relevant_incidents', 'view_department_incidents', 'view_all_incidents']}
+            >
+              <StaffIncidents />
             </ProtectedRoute>
           }
         />
@@ -259,8 +295,8 @@ export const AppRoutes: React.FC = () => {
           path="admin/incidents"
           element={
             <ProtectedRoute
-              allowedRoles={['admin']}
-              requireAnyPermission={['view_all_incidents', 'manage_incidents']}
+              allowedRoles={['admin', 'department_head', 'staff']}
+              requireAnyPermission={['view_all_incidents', 'manage_incidents', 'view_department_incidents', 'view_relevant_incidents']}
             >
               <AdminIncidentsPage />
             </ProtectedRoute>
@@ -320,6 +356,39 @@ export const AppRoutes: React.FC = () => {
               requireAnyPermission={['audit_read_requests', 'audit_read_logs']}
             >
               <AuditorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="auditor/incidents"
+          element={
+            <ProtectedRoute
+              allowedRoles={['auditor', 'admin']}
+              requireAnyPermission={['audit_read_incidents', 'view_all_incidents']}
+            >
+              <AuditorIncidents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="auditor/requests"
+          element={
+            <ProtectedRoute
+              allowedRoles={['auditor', 'admin']}
+              requireAnyPermission={['audit_read_requests', 'view_all_requests']}
+            >
+              <StaffRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="auditor/analytics"
+          element={
+            <ProtectedRoute
+              allowedRoles={['auditor', 'admin']}
+              requireAnyPermission={['audit_read_analytics', 'view_campus_analytics']}
+            >
+              <AnalyticsPage />
             </ProtectedRoute>
           }
         />

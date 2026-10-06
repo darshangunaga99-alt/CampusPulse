@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         return [
           { to: '/staff/dashboard', label: 'Staff Dashboard', icon: LayoutDashboard },
           { to: '/staff/requests', label: 'Assigned Work Queue', icon: CheckSquare },
+          { to: '/staff/incidents', label: 'Active Incidents', icon: Flame },
         ];
       case 'department_head':
         return [
@@ -47,8 +48,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           { to: '/department/requests', label: 'Department Queue', icon: FileText },
           { to: '/department/incidents', label: 'Active Incidents', icon: Flame },
         ];
-      case 'admin':
       case 'auditor':
+        return [
+          { to: '/auditor/dashboard', label: 'Compliance Dashboard', icon: LayoutDashboard },
+          { to: '/auditor/requests', label: 'Request Directory', icon: FileText },
+          { to: '/auditor/incidents', label: 'Active Incidents', icon: Flame },
+        ];
+      case 'admin':
       default:
         return [
           { to: '/admin/dashboard', label: 'Command Center', icon: LayoutDashboard },
